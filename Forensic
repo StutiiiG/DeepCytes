@@ -1,0 +1,507 @@
+#!/bin/bash
+
+echo "Choose a tool to run:"
+echo "1. OutGuess (Steganography)"
+echo "2. ExifTool (Exif metadata manipulation)"
+echo "3. ADB (Android Debug Bridge)"
+echo "4. Scalpel (File carving)"
+echo "5. Drozer (Android Security Assessment Framework)"
+echo "6. Stegosuite"
+echo "7. TrID"
+echo "8. Hashdeep"
+echo "9.Metagoofil"
+echo "00. Exit"
+echo ""
+
+read -p "Enter your choice (1/2/3/4/5/6/7/8/9): " tool_choice
+
+case $tool_choice in
+  1)
+    # OutGuess tool
+    echo "Running OutGuess..."
+
+    # Update package index and install OutGuess
+    sudo apt install -y outguess
+
+    # Check installation
+    outguess --help
+
+    echo "OutGuess installed successfully!"
+    echo ""
+
+    echo "Choose from the below options for steganography:"
+    echo "1. Embed a message in an image"
+    echo "2. Extract the message from an image"
+    echo "3. Exit"
+    echo ""
+
+    read -p "Enter your choice (1/2/3): " choice
+
+    case $choice in
+      1)
+        read -p "Enter input file path: " input_file
+        read -p "Enter output file path: " output_file
+        read -p "Enter key: " key
+        read -p "Enter dataset filename: " dataset_filename
+
+        file_ext="${input_file##*.}"
+        file_ext_lower=$(echo "$file_ext" | tr '[:upper:]' '[:lower:]')
+
+        if [[ $file_ext_lower == "jpeg" || $file_ext_lower == "jpg" || $file_ext_lower == "png" || $file_ext_lower == "JPEG" || $file_ext_lower == "JPG" ]]; then
+          outguess -k "$key" -d "$dataset_filename" "$input_file" "$output_file"
+        else
+          echo "Unsupported file type. Please provide a JPEG, JPG, or PNG image file."
+        fi
+        ;;
+      2)
+        read -p "Enter input file path: " input_file
+        read -p "Enter output file path: " output_file
+        read -p "Enter key: " key
+
+        outguess -r -k "$key" -r "$input_file" "$output_file"
+        ;;
+      3)
+        echo "Exiting."
+        exit 0
+        ;;
+      *)
+        echo "Invalid choice. Please choose a valid option."
+        exit 1
+        ;;
+    esac
+    ;;
+  2)
+    # ExifTool
+    echo "Running ExifTool..."
+
+    # Install ExifTool
+    if ! command -v exiftool &> /dev/null
+    then
+        echo "Installing ExifTool..."
+        sudo apt-get install -y libimage-exiftool-perl
+    fi
+
+    # Check installation
+    if ! exiftool --help > /dev/null 2>&1
+    then
+        echo "ExifTool installation failed."
+        exit 1
+    fi
+
+    echo "ExifTool installed successfully!"
+    echo ""
+
+    echo "Choose from the below options for Exif metadata manipulation:"
+    echo "1. Add metadata to an image"
+    echo "2. Remove metadata from an image"
+    echo "3. Extract metadata from an image"
+    echo "4. Exit"
+    echo ""
+
+    read -p "Enter your choice (1/2/3/4): " choice
+
+    case $choice in
+      1)
+        read -p "Enter input file path: " input_file
+        read -p "Enter output file path: " output_file
+        read -p "Enter metadata key: " key
+        read -p "Enter metadata value: " value
+
+        file_ext="${input_file##*.}"
+        file_ext_lower=$(echo "$file_ext" | tr '[:upper:]' '[:lower:]')
+
+        if [[ $file_ext_lower == "jpeg" || $file_ext_lower == "jpg" || $file_ext_lower == "png" ]]; then
+          exiftool -$key="$value""$input_file" -o "$output_file"
+        else
+          echo "Unsupported file type. Please provide a JPEG, JPG, or PNG image file."
+        fi
+        ;;
+      2)
+        read -p "Enter input file path: " input_file
+        read -p "Enter output file path: " output_file
+        read -p "Enter metadata key: " key
+
+        file_ext="${input_file##*.}"
+        file_ext_lower=$(echo "$file_ext" | tr '[:upper:]' '[:lower:]')
+
+        if [[ $file_ext_lower == "jpeg" || $file_ext_lower == "jpg" || $file_ext_lower == "png" ]]; then
+          exiftool -$key= "" "$input_file" -o "$output_file"
+        else
+          echo "Unsupported file type. Please provide a JPEG, JPG, or PNG image file."
+        fi
+        ;;
+      3)
+        read -p "Enter input file path: " input_file
+
+        file_ext="${input_file##*.}"
+        file_ext_lower=$(echo "$file_ext" | tr '[:upper:]' '[:lower:]')
+
+        if ([[ $file_ext_lower == "jpeg" ]] || [[ $file_ext_lower == "jpg" ]] || [[ $file_ext_lower == "png" ]]); then
+          exiftool "$input_file"
+        else
+          echo "Unsupported file type. Please provide a JPEG, JPG, or PNG image file."
+        fi
+        ;;
+      4)
+        echo "Exiting."
+        exit 0
+        ;;
+      *)
+        echo "Invalid choice. Please choose a valid option."
+        exit 1
+        ;;
+    esac
+    ;;
+  3)
+    # ADB
+    echo "Running ADB..."
+
+    # Install ADB
+    if ! [ -x "$(command -v adb)" ]; then
+      echo "ADB is not installed."
+      echo "Installing ADB now..."
+      curl -o adb.zip "https://dl.google.com/android/repository/platform-tools_r30.0.5-linux.zip"
+      unzip adb.zip
+      rm adb.zip
+      echo "ADB installation complete."
+    fi
+
+    # Connect to the Android device
+    adb devices
+
+    # Check if ADB is connected to a device
+    if [ -z "$(adb devices | grep device)" ]; then
+      echo "No Android device found. Please connect an Android device and try again."
+      exit 1
+    fi
+
+    echo "Choose from the below options for ADB tasks:"
+    echo "1. Install APK"
+    echo "2. Run shell command"
+    echo "3. Pull file from device"
+    echo "4. Push file to device"
+    echo "5. Exit"
+    echo ""
+
+    read -p "Enter your choice (1/2/3/4/5): " choice
+
+    case $choice in
+      1)
+        read -p "Enter APK file path: " apk_file
+        adb install "$apk_file"
+        ;;
+      2)
+        read -p "Enter shell command: " command
+        adb shell "$command"
+        ;;
+      3)
+        read -p "Enter file path on device: " file_path
+        read -p "Enter local file path: " local_file_path
+        adb pull "$file_path" "$local_file_path"
+        ;;
+      4)
+        read -p "Enter local file path: " local_file_path
+        read -p "Enter file path on device: " file_path
+        adb push "$local_file_path" "$file_path"
+        ;;
+      5)
+        echo "Exiting."
+        exit 0
+        ;;
+      *)
+        echo "Invalid choice. Please choose a valid option."
+        exit 1
+        ;;
+    esac
+    ;;
+  4)
+    # Scalpel
+    echo "Running Scalpel..."
+
+    # Install Scalpel
+    sudo apt-get install -y scalpel
+
+    # Check installation
+    scalpel -h
+
+    echo "Scalpel installed successfully!"
+    echo ""
+
+    echo "Choose from the below options for file carving:"
+    echo "1. Carve files from an input file"
+    echo "2. Exit"
+    echo ""
+
+    read -p "Enter your choice (1/2): " choice
+
+    case $choice in
+      1)
+        read -p "Enter input file path: " input_file
+        read -p "Enter output directory path: " output_directory
+
+        if [[ -f "$input_file" ]]; then
+          sudo scalpel "$input_file" -o "$output_directory"
+        else
+          echo "Input file not found. Please provide a valid input file path."
+        fi
+        ;;
+      2)
+        echo "Exiting."
+        exit 0
+        ;;
+      *)
+        echo "Invalid choice. Please choose a valid option."
+        exit 1
+        ;;
+    esac
+    ;;
+  5)
+    # Drozer
+    echo "Running Drozer..."
+
+    # Function to check if ADB is installed
+    check_adb_installed() {
+        if ! command -v adb &> /dev/null; then
+            echo "ADB is not installed. Please install ADB and try again."
+            exit 1
+        fi
+    }
+
+    # Function to connect to the Android device
+    connect_to_device() {
+        echo "Connecting to the Android device..."
+        adb devices
+    }
+
+    # Function to install Drozer if not already installed
+    install_drozer() {
+        if [[ ! -d "drozer" ]]; then
+            echo "Drozer not found. Installing Drozer..."
+            git clone https://github.com/WithSecureLabs/drozer.git
+            cd drozer || exit
+            python3 -m venv myenv
+            source myenv/bin/activate
+            pip install .
+            cd ..
+        else
+            echo "Drozer is already installed."
+        fi
+    }
+
+    # Function to execute forensic tests with Drozer
+    run_forensic_tests() {
+        echo "Running forensic tests with Drozer..."
+        
+        # Install Drozer if not already installed
+        install_drozer
+        
+        # Determine Drozer path
+        drozer_path="$(pwd)/drozer/myenv/bin/drozer"
+
+        # Port forwarding
+        echo "Forwarding ADB port..."
+        adb forward tcp:31415 tcp:31415
+
+        # Use expect to automate interactions with Drozer console
+        expect -c "
+        spawn $drozer_path console connect
+        expect \"dz>\"
+        send \"ls\n\"
+        expect \"dz>\"
+        send \"run app.package.list\n\"
+        expect \"dz>\"
+        send \"run app.package.info\n\"
+        expect \"dz>\"
+        send \"run scanner.provider.traversal\n\"
+        
+        set timeout -1
+        expect {
+            -re \"Scanning .*\\.\.\.\r\n\" {
+                exp_continue
+            }
+            \"dz>\" {
+                send \"run scanner.provider.injection\n\"
+            }
+            timeout {
+                send_user \"Command timed out.\n\"
+            }
+        }
+        expect \"dz>\"
+        send \"exit\n\"
+        " 
+
+    }
+
+    # Main function
+    main() {
+        check_adb_installed
+        connect_to_device
+        run_forensic_tests
+    }
+
+    # Execute main function
+    main
+
+    ;;
+  6)
+    # Stegosuite
+    echo "Running Stegosuite..."
+
+    # Download directory (modify as needed)
+    download_dir="/tmp/stegosuite"
+    # download URL 
+    download_url="https://www.digital-invisible.net/Stegosuite/stegosuite-linux-64bit.tar.gz"
+    
+    # Extract directory 
+    extract_dir="/opt/stegosuite"
+    # Check if root for download
+    if [ "$EUID" -ne 0 ]; then
+      echo "This script requires root privileges for download. Please run with 'sudo'."
+      exit 1
+    fi
+    # Create download directory 
+    if [ ! -d "$download_dir" ]; then
+      mkdir -p "$download_dir"
+    fi
+    # Download Stegosuite archive
+    wget -qO- "$download_url" > "$download_dir/stegosuite.tar.gz"
+
+    # Check download
+    if [ ! -f "$download_dir/stegosuite.tar.gz" ]; then
+      echo "Stegosuite download failed. Please check the download URL."
+      exit 1 
+    fi
+
+    # Extract Stegosuite archive
+    sudo tar -xzf "$download_dir/stegosuite.tar.gz" -C "$extract_dir"
+
+    # Inform user about location
+    echo "Stegosuite extracted to: $extract_dir"
+    echo "**Note:** This script does not set up automatic execution from the command line."
+    echo "Navigate to the extracted directory and run './stegosuite' to launch the GUI."
+
+    ;;
+  7)
+    # TrID
+    echo "Running TrID..."
+
+    # Check if TrID is installed
+    if [ ! -f "$(command -v file)" ]; then  # TrID uses the `file` command
+      echo "TrID (file) is not installed. This script requires TrID pre-installed on Kali Linux."
+      exit 1
+    fi
+
+    # Get user input 
+    read -p "Enter the path to the file for identification: " file_path
+
+    # Check if file exists
+    if [ ! -f "$file_path" ]; then
+      echo "File '$file_path' does not exist. Please provide a valid path."
+      exit 1
+    fi
+
+    # Run on file
+    file "$file_path"
+
+    ;;
+  8)
+    # Hashdeep
+    echo "Running Hashdeep..."
+
+    # Install hashdeep and dependencies
+    sudo apt update
+    sudo apt install -y hashdeep
+
+    # Check for successful installation
+    if [ ! -f "$(command -v hashdeep)" ]; then
+      echo "Hashdeep installation failed. Please check for errors in the apt logs."
+      exit 1
+    fi
+
+    # Get user input
+    read -p "Enter the path to the directory to hash (e.g., /path/to/directory): " directory
+
+    # Check if directory exists
+    if [ ! -d "$directory" ]; then
+      echo "Directory '$directory' does not exist. Please provide a valid path."
+      exit 1
+    fi
+
+    # Define output file
+    output_file="hashdeep_output.txt"
+
+    # Run hashdeep with user-provided directory and output file
+    hashdeep -r "$directory" > "$output_file"
+
+    echo "Hashdeep has generated hashes for the files in '$directory'. Hashes are saved in '$output_file'"
+    ;;
+  9)
+    # Function to install dependencies
+    install_dependencies() {
+    echo "Installing dependencies..."
+    sudo apt-get update
+    sudo apt-get install -y git python3 python3-venv python3-pip
+    }  
+
+    # Function to set up Metagoofil
+    setup_metagoofil() {
+    echo "Setting up Metagoofil..."
+    # Clone the Metagoofil repository
+    git clone https://github.com/opsdisk/metagoofil.git
+    #   Change to the Metagoofil directory
+    cd metagoofil
+    # Create and activate a virtual environment
+    python3 -m venv .venv
+    source .venv/bin/activate
+    # Install Metagoofil requirements
+    pip install -r requirements.txt
+    echo "Installation and setup completed!"
+    }
+
+    # Function to run Metagoofil
+    run_metagoofil() {
+    echo "Running Metagoofil..."
+    read -p "Enter the domain or website to search: " domain
+    read -p "Enter the file types to search for (e.g., pdf,doc,xls): " file_types
+    read -p "Enter the maximum number of results to fetch (default: 100): " max_results
+    read -p "Do you want to download the files? (y/n): " download_files
+
+    if [ -z "$max_results" ]; then
+      max_results=100
+    fi
+
+    if [ "$download_files" == "y" ]; then
+      download_option="-w"
+    else
+      download_option=""
+    fi
+
+    python metagoofil.py -d "$domain" -t "$file_types" -l "$max_results" $download_option
+    }
+
+    # Main script
+    install_dependencies
+    setup_metagoofil
+
+    echo "Choose an option:"
+    echo "1. Run Metagoofil"
+    echo "2. Exit"
+    read option
+
+    if [ "$option" == "1" ]; then
+      run_metagoofil
+    elif [ "$option" == "2" ]; then
+      echo "Exiting..."
+      exit 0
+    else
+      echo "Invalid option. Please try again."
+    fi
+  00)
+    echo "Exiting."
+    exit 0
+    ;;
+  *)
+    echo "Invalid choice. Please choose a valid option."
+    exit 1
+    ;;
+esac
